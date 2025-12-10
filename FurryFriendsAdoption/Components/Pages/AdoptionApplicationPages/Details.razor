@@ -1,0 +1,60 @@
+﻿@page "/adoptionapplications/details"
+@using Microsoft.EntityFrameworkCore
+@using FurryFriendsAdoption.Domain
+@inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>AdoptionApplication</h2>
+    <hr />
+    @if (adoptionapplication is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">PetId</dt>
+            <dd class="col-sm-10">@adoptionapplication.PetId</dd>
+            <dt class="col-sm-2">CustomerId</dt>
+            <dd class="col-sm-10">@adoptionapplication.CustomerId</dd>
+            <dt class="col-sm-2">Status</dt>
+            <dd class="col-sm-10">@adoptionapplication.Status</dd>
+            <dt class="col-sm-2">ApplicationDate</dt>
+            <dd class="col-sm-10">@adoptionapplication.ApplicationDate</dd>
+            <dt class="col-sm-2">DateCreated</dt>
+            <dd class="col-sm-10">@adoptionapplication.DateCreated</dd>
+            <dt class="col-sm-2">DateUpdated</dt>
+            <dd class="col-sm-10">@adoptionapplication.DateUpdated</dd>
+            <dt class="col-sm-2">CreatedBy</dt>
+            <dd class="col-sm-10">@adoptionapplication.CreatedBy</dd>
+            <dt class="col-sm-2">UpdatedBy</dt>
+            <dd class="col-sm-10">@adoptionapplication.UpdatedBy</dd>
+        </dl>
+        <div>
+            <a href="@($"/adoptionapplications/edit?id={adoptionapplication.Id}")">Edit</a> |
+            <a href="@($"/adoptionapplications")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private AdoptionApplication? adoptionapplication;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        adoptionapplication = await context.AdoptionApplication.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (adoptionapplication is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

@@ -1,0 +1,40 @@
+﻿@page "/petcategories"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FurryFriendsAdoption.Domain
+@using FurryFriendsAdoption.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="petcategories/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.PetCategory">
+    <PropertyColumn Property="petcategory => petcategory.Name" />
+    <PropertyColumn Property="petcategory => petcategory.DateCreated" />
+    <PropertyColumn Property="petcategory => petcategory.DateUpdated" />
+    <PropertyColumn Property="petcategory => petcategory.CreatedBy" />
+    <PropertyColumn Property="petcategory => petcategory.UpdatedBy" />
+
+    <TemplateColumn Context="petcategory">
+        <a href="@($"petcategories/edit?id={petcategory.Id}")">Edit</a> |
+        <a href="@($"petcategories/details?id={petcategory.Id}")">Details</a> |
+        <a href="@($"petcategories/delete?id={petcategory.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private FurryFriendsAdoptionContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

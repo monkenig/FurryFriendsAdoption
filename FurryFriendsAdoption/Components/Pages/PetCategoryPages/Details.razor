@@ -1,0 +1,54 @@
+﻿@page "/petcategories/details"
+@using Microsoft.EntityFrameworkCore
+@using FurryFriendsAdoption.Domain
+@inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>PetCategory</h2>
+    <hr />
+    @if (petcategory is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Name</dt>
+            <dd class="col-sm-10">@petcategory.Name</dd>
+            <dt class="col-sm-2">DateCreated</dt>
+            <dd class="col-sm-10">@petcategory.DateCreated</dd>
+            <dt class="col-sm-2">DateUpdated</dt>
+            <dd class="col-sm-10">@petcategory.DateUpdated</dd>
+            <dt class="col-sm-2">CreatedBy</dt>
+            <dd class="col-sm-10">@petcategory.CreatedBy</dd>
+            <dt class="col-sm-2">UpdatedBy</dt>
+            <dd class="col-sm-10">@petcategory.UpdatedBy</dd>
+        </dl>
+        <div>
+            <a href="@($"/petcategories/edit?id={petcategory.Id}")">Edit</a> |
+            <a href="@($"/petcategories")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private PetCategory? petcategory;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        petcategory = await context.PetCategory.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (petcategory is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

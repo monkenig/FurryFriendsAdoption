@@ -1,6 +1,15 @@
-using FurryFriendsAdoption.Components;
+﻿using FurryFriendsAdoption.Components;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using FurryFriendsAdoption.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDbContextFactory<FurryFriendsAdoptionContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("FurryFriendsAdoptionContext") ?? throw new InvalidOperationException("Connection string 'FurryFriendsAdoptionContext' not found.")));
+
+builder.Services.AddQuickGridEntityFrameworkAdapter();
+
+builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -14,6 +23,7 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    app.UseMigrationsEndPoint();
 }
 
 app.UseHttpsRedirection();
