@@ -1,19 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using FurryFriendsAdoption.Configurations.Entities;
+using FurryFriendsAdoption.Data;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using FurryFriendsAdoption.Domain;
-using FurryFriendsAdoption.Configurations.Entities;
 
 namespace FurryFriendsAdoption.Data
 {
-    public class FurryFriendsAdoptionContext : DbContext
+    public class FurryFriendsAdoptionContext(DbContextOptions<FurryFriendsAdoptionContext> options) : IdentityDbContext<FurryFriendsAdoptionUser>(options)
     {
-        public FurryFriendsAdoptionContext (DbContextOptions<FurryFriendsAdoptionContext> options)
-            : base(options)
-        {
-        }
         public DbSet<FurryFriendsAdoption.Domain.Pet> Pet { get; set; } = default!;
         public DbSet<FurryFriendsAdoption.Domain.Appointment> Appointment { get; set; } = default!;
         public DbSet<FurryFriendsAdoption.Domain.Customer> Customer { get; set; } = default!;
