@@ -18,6 +18,9 @@ namespace FurryFriendsAdoption.Data
             base.OnModelCreating(builder);
             builder.ApplyConfiguration(new PetCategorySeed());
             builder.ApplyConfiguration(new PetSeed());
+            builder.ApplyConfiguration(new RoleSeed());
+            builder.ApplyConfiguration(new UserSeed());
+            builder.ApplyConfiguration(new UserRoleSeed());
         }
     }
 }
