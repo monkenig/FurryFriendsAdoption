@@ -34,6 +34,7 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 builder.Services.AddIdentityCore<FurryFriendsAdoptionUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<FurryFriendsAdoptionContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
