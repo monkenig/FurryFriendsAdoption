@@ -84,10 +84,27 @@ else
     [SupplyParameterFromForm]
     private Customer? Customer { get; set; }
 
+    //Create userId string to store the user id, default value is "System".
+    private string userId = "System";
+
+    //Inject the AuthenticationStateProvider to get the user id.
+    @inject AuthenticationStateProvider authenticationStateProvider
+
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
         Customer ??= await context.Customer.FirstOrDefaultAsync(m => m.Id == Id);
+
+        var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // Get the userId claim
+        var userIdClaim = user.FindFirst("userId");
+
+        if (userIdClaim != null)
+        {
+            userId = userIdClaim.Value;
+        }
 
         if (Customer is null)
         {
@@ -100,6 +117,13 @@ else
     private async Task UpdateCustomer()
     {
         using var context = DbFactory.CreateDbContext();
+
+        //Set the userId to the UpdatedBy fields.
+        Customer.UpdatedBy = userId;
+
+        //Set the DateUpdated fields to the current date and time.
+        Customer.DateUpdated = DateTime.Now;
+
         context.Attach(Customer!).State = EntityState.Modified;
 
         try

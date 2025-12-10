@@ -6,6 +6,8 @@
 @implements IAsyncDisposable
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 
+@attribute [Authorize(Roles = "Administrator, User")]
+
 <PageTitle>Index</PageTitle>
 
 <h1>Index</h1>
@@ -26,8 +28,10 @@
 
     <TemplateColumn Context="adoptionapplication">
         <a href="@($"adoptionapplications/edit?id={adoptionapplication.Id}")">Edit</a> |
-        <a href="@($"adoptionapplications/details?id={adoptionapplication.Id}")">Details</a> |
-        <a href="@($"adoptionapplications/delete?id={adoptionapplication.Id}")">Delete</a>
+        <a href="@($"adoptionapplications/details?id={adoptionapplication.Id}")">Details</a> 
+        <AuthorizeView Roles="Administrator">
+        | <a href="@($"adoptionapplications/delete?id={adoptionapplication.Id}")">Delete</a>
+        </AuthorizeView>
     </TemplateColumn>
 </QuickGrid>
 

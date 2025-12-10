@@ -4,6 +4,8 @@
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 @inject NavigationManager NavigationManager
 
+@attribute [Authorize(Roles = "Administrator")]
+
 <PageTitle>Edit</PageTitle>
 
 <h1>Edit</h1>
@@ -51,6 +53,11 @@ else
                     <label for="isadopted" class="form-label">IsAdopted:</label>
                     <InputCheckbox id="isadopted" @bind-Value="Pet.IsAdopted" class="form-check-input" />
                     <ValidationMessage For="() => Pet.IsAdopted" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="isvaccinated" class="form-label">IsVaccinated:</label>
+                    <InputCheckbox id="isvaccinated" @bind-Value="Pet.IsVaccinated" class="form-check-input" />
+                    <ValidationMessage For="() => Pet.IsVaccinated" class="text-danger" />
                 </div>
                 <div class="mb-3">
                     <label for="petcategoryid" class="form-label">PetCategoryId:</label>

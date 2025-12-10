@@ -18,6 +18,7 @@ namespace FurryFriendsAdoption.Configurations.Entities
                     Age = 3,
                     Gender = "Female",
                     IsAdopted = false,
+                    IsVaccinated = true,
                     PetCategoryId = 1
                 },
                 new Pet
@@ -29,6 +30,7 @@ namespace FurryFriendsAdoption.Configurations.Entities
                     Age = 2,
                     Gender = "Male",
                     IsAdopted = false,
+                    IsVaccinated = true,
                     PetCategoryId = 2
                 },
                 new Pet
@@ -40,6 +42,7 @@ namespace FurryFriendsAdoption.Configurations.Entities
                     Age = 1,
                     Gender = "Female",
                     IsAdopted = false,
+                    IsVaccinated = true,
                     PetCategoryId = 3
                 }
             );

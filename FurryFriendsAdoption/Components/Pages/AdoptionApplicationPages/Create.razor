@@ -16,14 +16,34 @@
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert"/>
             <div class="mb-3">
-                <label for="petid" class="form-label">PetId:</label> 
-                <InputNumber id="petid" @bind-Value="AdoptionApplication.PetId" class="form-control" /> 
-                <ValidationMessage For="() => AdoptionApplication.PetId" class="text-danger" /> 
+                <label for="petid" class="form-label">Pet:</label> 
+                <InputSelect id="petid" @bind-Value="AdoptionApplication.PetId" class="form-control">
+                    <option value="">-- Select Pet --</option>
+                    @if (Pets != null)
+                    {
+                        foreach (var pet in Pets)
+                        {
+                            <option value="@pet.Id">@pet.Name</option>
+                        }
+                    }
+                </InputSelect>
+                @* <InputNumber id="petid" @bind-Value="AdoptionApplication.PetId" class="form-control" /> 
+                <ValidationMessage For="() => AdoptionApplication.PetId" class="text-danger" />  *@
             </div>        
             <div class="mb-3">
-                <label for="customerid" class="form-label">CustomerId:</label> 
-                <InputNumber id="customerid" @bind-Value="AdoptionApplication.CustomerId" class="form-control" /> 
-                <ValidationMessage For="() => AdoptionApplication.CustomerId" class="text-danger" /> 
+                <label for="customerid" class="form-label">Customer:</label> 
+                <InputSelect id="customerid" @bind-Value="AdoptionApplication.CustomerId" class="form-control">
+                    <option value="">-- Select Customer --</option>
+                    @if (Customers != null)
+                    {
+                        foreach (var customer in Customers)
+                        {
+                            <option value="@customer.Id">@customer.FirstName @customer.LastName</option>
+                        }
+                    }
+                </InputSelect>
+                @* <InputNumber id="customerid" @bind-Value="AdoptionApplication.CustomerId" class="form-control" /> 
+                <ValidationMessage For="() => AdoptionApplication.CustomerId" class="text-danger" />  *@
             </div>        
             <div class="mb-3">
                 <label for="status" class="form-label">Status:</label> 
@@ -68,11 +88,34 @@
     [SupplyParameterFromForm]
     private AdoptionApplication AdoptionApplication { get; set; } = new();
 
+    private List<Customer> Customers = new();
+    private List<Pet> Pets = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        Customers = await context.Customer.ToListAsync();
+
+        // Only show available pets
+        Pets = await context.Pet
+            .Where(p => !p.IsAdopted)
+            .ToListAsync();
+    }
+
     // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
     private async Task AddAdoptionApplication()
     {
         using var context = DbFactory.CreateDbContext();
         context.AdoptionApplication.Add(AdoptionApplication);
+
+        var pet = await context.Pet.FindAsync(AdoptionApplication.PetId);
+        if (pet != null)
+        {
+            pet.IsAdopted = true;
+            context.Pet.Update(pet);
+        }
+
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo("/adoptionapplications");
     }
