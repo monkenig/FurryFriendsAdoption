@@ -3,6 +3,7 @@
 @using FurryFriendsAdoption.Domain
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 @inject NavigationManager NavigationManager
+@attribute [Authorize(Roles = "Administrator")]
 
 <PageTitle>Edit</PageTitle>
 
@@ -33,8 +34,12 @@ else
                     <ValidationMessage For="() => AdoptionApplication.CustomerId" class="text-danger" />
                 </div>
                 <div class="mb-3">
-                    <label for="status" class="form-label">Status:</label>
-                    <InputText id="status" @bind-Value="AdoptionApplication.Status" class="form-control" />
+                    <InputSelect id="status" @bind-Value="AdoptionApplication.Status" class="form-control">
+                        @foreach (var s in Enum.GetValues<AdoptionApplicationStatus>())
+                        {
+                            <option value="@s">@s</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => AdoptionApplication.Status" class="text-danger" />
                 </div>
                 <div class="mb-3">
@@ -78,6 +83,8 @@ else
 
     [SupplyParameterFromForm]
     private AdoptionApplication? AdoptionApplication { get; set; }
+    private List<Pet> Pets { get; set; } = new();
+    private List<Customer> Customers { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -93,28 +100,59 @@ else
     // To protect from overposting attacks, enable the specific properties you want to bind to.
     // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
     private async Task UpdateAdoptionApplication()
-    {
-        using var context = DbFactory.CreateDbContext();
-        context.Attach(AdoptionApplication!).State = EntityState.Modified;
+{
+    using var context = DbFactory.CreateDbContext();
 
-        try
+    // Load the existing record from DB (so we know the old status + pet id)
+    var existing = await context.AdoptionApplication
+        .AsNoTracking()
+        .FirstOrDefaultAsync(a => a.Id == AdoptionApplication!.Id);
+
+    if (existing is null)
+    {
+        NavigationManager.NavigateTo("notfound");
+        return;
+    }
+
+    // Save updated application
+    context.AdoptionApplication.Update(AdoptionApplication!);
+
+    // If status changed to Approved -> mark pet adopted
+    if (existing.Status != AdoptionApplication!.Status)
+    {
+        var pet = await context.Pet.FindAsync(AdoptionApplication.PetId);
+        if (pet != null)
         {
-            await context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!AdoptionApplicationExists(AdoptionApplication!.Id))
+            if (AdoptionApplication.Status == AdoptionApplicationStatus.Approved)
             {
-                NavigationManager.NavigateTo("notfound");
+                pet.IsAdopted = true;
             }
             else
             {
-                throw;
+                // Optional: if it was previously approved and now changed away, undo adopted
+                if (existing.Status == AdoptionApplicationStatus.Approved)
+                {
+                    pet.IsAdopted = false;
+                }
             }
         }
-
-        NavigationManager.NavigateTo("/adoptionapplications");
     }
+
+    try
+    {
+        await context.SaveChangesAsync();
+    }
+    catch (DbUpdateConcurrencyException)
+    {
+        if (!AdoptionApplicationExists(AdoptionApplication!.Id))
+            NavigationManager.NavigateTo("notfound");
+        else
+            throw;
+    }
+
+    NavigationManager.NavigateTo("/adoptionapplications");
+}
+
 
     private bool AdoptionApplicationExists(int id)
     {

@@ -5,6 +5,8 @@
 @inject NavigationManager NavigationManager
 
 @attribute [Authorize(Roles = "Administrator")]
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Create</PageTitle>
 
@@ -38,10 +40,14 @@
                 <ValidationMessage For="() => Pet.Age" class="text-danger" /> 
             </div>        
             <div class="mb-3">
-                <label for="gender" class="form-label">Gender:</label> 
-                <InputText id="gender" @bind-Value="Pet.Gender" class="form-control" /> 
-                <ValidationMessage For="() => Pet.Gender" class="text-danger" /> 
-            </div>        
+                <label class="form-label">Gender:</label>
+                <InputSelect class="form-control" @bind-Value="Pet.Gender">
+                    <option value="">-- Select Gender --</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </InputSelect>
+                <ValidationMessage For="() => Pet.Gender" class="text-danger" />
+            </div>
             <div class="mb-3">
                 <label for="isadopted" class="form-label">IsAdopted:</label> 
                 <InputCheckbox id="isadopted" @bind-Value="Pet.IsAdopted" class="form-check-input" /> 
@@ -53,30 +59,17 @@
                 <ValidationMessage For="() => Pet.IsVaccinated" class="text-danger" />
             </div>
             <div class="mb-3">
-                <label for="petcategoryid" class="form-label">PetCategoryId:</label> 
-                <InputNumber id="petcategoryid" @bind-Value="Pet.PetCategoryId" class="form-control" /> 
-                <ValidationMessage For="() => Pet.PetCategoryId" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="datecreated" class="form-label">DateCreated:</label> 
-                <InputDate id="datecreated" @bind-Value="Pet.DateCreated" class="form-control" /> 
-                <ValidationMessage For="() => Pet.DateCreated" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="dateupdated" class="form-label">DateUpdated:</label> 
-                <InputDate id="dateupdated" @bind-Value="Pet.DateUpdated" class="form-control" /> 
-                <ValidationMessage For="() => Pet.DateUpdated" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="createdby" class="form-label">CreatedBy:</label> 
-                <InputText id="createdby" @bind-Value="Pet.CreatedBy" class="form-control" /> 
-                <ValidationMessage For="() => Pet.CreatedBy" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="updatedby" class="form-label">UpdatedBy:</label> 
-                <InputText id="updatedby" @bind-Value="Pet.UpdatedBy" class="form-control" /> 
-                <ValidationMessage For="() => Pet.UpdatedBy" class="text-danger" /> 
-            </div>        
+                <label class="form-label">Category:</label>
+                <InputSelect class="form-control" @bind-Value="Pet.PetCategoryId">
+                    <option value="0">-- Select Category --</option>
+                    @foreach (var c in Categories)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => Pet.PetCategoryId" class="text-danger" />
+            </div>
+
             <button type="submit" class="btn btn-primary">Create</button>
         </EditForm>
     </div>
@@ -89,13 +82,38 @@
 @code {
     [SupplyParameterFromForm]
     private Pet Pet { get; set; } = new();
+    private List<PetCategory> Categories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Categories = await context.PetCategory.AsNoTracking().ToListAsync();
+
+        // sensible defaults for create page
+        Pet.IsAdopted = false;
+        Pet.IsVaccinated = false;
+    }
 
     // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
     private async Task AddPet()
     {
         using var context = DbFactory.CreateDbContext();
+
+        // basic safety check
+        if (Pet.PetCategoryId == 0) return;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
+
+        Pet.DateCreated = DateTime.Now;
+        Pet.DateUpdated = DateTime.Now;
+        Pet.CreatedBy = userId;
+        Pet.UpdatedBy = userId;
+
         context.Pet.Add(Pet);
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo("/pets");
     }
+
 }

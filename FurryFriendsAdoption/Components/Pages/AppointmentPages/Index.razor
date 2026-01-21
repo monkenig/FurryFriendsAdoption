@@ -3,8 +3,10 @@
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using FurryFriendsAdoption.Domain
 @using FurryFriendsAdoption.Data
-@implements IAsyncDisposable
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
 
 @attribute [Authorize(Roles = "Administrator, User")]
 
@@ -12,19 +14,55 @@
 
 <h1>Index</h1>
 
-<p>
-    <a href="appointments/create">Create New</a>
-</p>
+@if (!IsAdmin)
+{
+    <p>
+        <a href="appointments/create">Create New</a>
+    </p>
+}
 
-<QuickGrid Class="table" Items="context.Appointment">
+@if (PendingActionAppointmentId != null)
+{
+    <div class="alert alert-warning">
+        <strong>Confirm action</strong>
+        <p>
+            Are you sure you want to <strong>@PendingActionAppointment</strong> this appointment?
+        </p>
+
+        @if (PendingActionAppointment == "reject")
+        {
+            <div class="mb-2">
+                <label class="form-label">Reason for rejection</label>
+                <InputTextArea class="form-control"
+                               @bind-Value="RejectionReasonInput"
+                               rows="3" />
+            </div>
+        }
+
+        <button class="btn btn-success me-2" @onclick="ConfirmAppointmentAction">
+            Yes
+        </button>
+
+        <button class="btn btn-secondary" @onclick="CancelAppointmentAction">
+            Cancel
+        </button>
+    </div>
+}
+
+
+
+<QuickGrid Class="table" Items="Appointments.AsQueryable()">
     <PropertyColumn Property="appointment => appointment.AppointmentDate" />
     <PropertyColumn Property="appointment => appointment.Status" />
-    <PropertyColumn Property="appointment => appointment.PetId" />
-    <PropertyColumn Property="appointment => appointment.CustomerId" />
+    <TemplateColumn Title="Pet" Context="appointment">
+        @(appointment.Pet?.Name ?? "—")
+    </TemplateColumn>
+
+    <TemplateColumn Title="Customer" Context="appointment">
+        @($"{appointment.Customer?.FirstName} {appointment.Customer?.LastName}".Trim())
+    </TemplateColumn>
     <PropertyColumn Property="appointment => appointment.DateCreated" />
     <PropertyColumn Property="appointment => appointment.DateUpdated" />
-    <PropertyColumn Property="appointment => appointment.CreatedBy" />
-    <PropertyColumn Property="appointment => appointment.UpdatedBy" />
 
     <TemplateColumn Context="appointment">
         <a href="@($"appointments/edit?id={appointment.Id}")">Edit</a> |
@@ -33,15 +71,163 @@
             | <a href="@($"appointments/delete?id={appointment.Id}")">Delete</a>
         </AuthorizeView>
     </TemplateColumn>
+
+    <TemplateColumn Title="Actions" Context="appointment">
+        @if (IsAdmin && appointment.Status == AppointmentStatus.Pending)
+        {
+            <button class="btn btn-sm btn-success me-2"
+                    type="button"
+                    @onclick="() => AskConfirmApproveAppointment(appointment.Id)">
+                Approve
+            </button>
+
+            <button class="btn btn-sm btn-danger"
+                    type="button"
+                    @onclick="() => AskConfirmRejectAppointment(appointment.Id)">
+                Reject
+            </button>
+        }
+        else
+        {
+            <span>—</span>
+        }
+    </TemplateColumn>
+
+    <TemplateColumn Title="Rejection Reason" Context="a">
+        @(a.RejectionReason ?? "—")
+    </TemplateColumn>
+
+
 </QuickGrid>
 
 @code {
-    private FurryFriendsAdoptionContext context = default!;
+    private List<Appointment> Appointments = new();
+    private bool IsAdmin;
 
-    protected override void OnInitialized()
+    private int? PendingActionAppointmentId;
+    private string? PendingActionAppointment; 
+    private string RejectionReasonInput = "";
+
+    private async Task LoadAppointmentsAsync()
     {
-        context = DbFactory.CreateDbContext();
+        using var db = DbFactory.CreateDbContext();
+
+        if (IsAdmin)
+        {
+            Appointments = await db.Appointment
+                .AsNoTracking()
+                .Include(a => a.Pet)
+                .Include(a => a.Customer)
+                .ToListAsync();
+            return;
+        }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var identityUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(identityUserId))
+        {
+            Appointments = new();
+            return;
+        }
+
+        var customerId = await db.Customer
+            .Where(c => c.IdentityUserId == identityUserId)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync();
+
+        Appointments = await db.Appointment
+            .AsNoTracking()
+            .Where(a => a.CustomerId == customerId)
+            .Include(a => a.Pet)
+            .Include(a => a.Customer)
+            .ToListAsync();
     }
 
-    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        IsAdmin = user.IsInRole("Administrator");
+
+        await LoadAppointmentsAsync();
+    }
+
+
+
+    private async Task ApproveAppointment(int appointmentId)
+    {
+        using var db = DbFactory.CreateDbContext();
+
+        var appt = await db.Appointment.FindAsync(appointmentId);
+        if (appt == null) return;
+
+        appt.Status = AppointmentStatus.Approved;
+
+        await db.SaveChangesAsync();
+
+        await LoadAppointmentsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    
+
+    private void AskConfirmApproveAppointment(int id)
+    {
+        PendingActionAppointmentId = id;
+        PendingActionAppointment = "approve";
+    }
+
+    private void AskConfirmRejectAppointment(int id)
+    {
+        PendingActionAppointmentId = id;
+        PendingActionAppointment = "reject";
+    }
+
+    private void CancelAppointmentAction()
+    {
+        PendingActionAppointmentId = null;
+        PendingActionAppointment = null;
+        RejectionReasonInput = "";
+    }
+
+
+    private async Task ConfirmAppointmentAction()
+    {
+        if (PendingActionAppointmentId == null || PendingActionAppointment == null)
+            return;
+
+        if (PendingActionAppointment == "approve")
+            await ApproveAppointment(PendingActionAppointmentId.Value);
+        else if (PendingActionAppointment == "reject")
+            await RejectAppointment(PendingActionAppointmentId.Value);
+
+        PendingActionAppointmentId = null;
+        PendingActionAppointment = null;
+    }
+
+    private async Task RejectAppointment(int appointmentId)
+    {
+        using var db = DbFactory.CreateDbContext();
+
+        var appt = await db.Appointment.FindAsync(appointmentId);
+        if (appt == null) return;
+
+        if (appt.Status != AppointmentStatus.Pending) return;
+
+        appt.Status = AppointmentStatus.Rejected;
+        appt.RejectionReason = string.IsNullOrWhiteSpace(RejectionReasonInput)
+            ? null
+            : RejectionReasonInput.Trim();
+
+        await db.SaveChangesAsync();
+
+        await LoadAppointmentsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+
 }

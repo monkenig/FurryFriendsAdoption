@@ -1,5 +1,6 @@
 ﻿using FurryFriendsAdoption.Configurations.Entities;
 using FurryFriendsAdoption.Data;
+using FurryFriendsAdoption.Domain;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,11 +17,23 @@ namespace FurryFriendsAdoption.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+
+            builder.Entity<AdoptionApplication>()
+                .Property(a => a.Status)
+                .HasConversion<string>();
+
+            builder.Entity<Appointment>()
+                .Property(a => a.Status)
+                .HasConversion<string>();
+
+
             builder.ApplyConfiguration(new PetCategorySeed());
             builder.ApplyConfiguration(new PetSeed());
             builder.ApplyConfiguration(new RoleSeed());
             builder.ApplyConfiguration(new UserSeed());
             builder.ApplyConfiguration(new UserRoleSeed());
         }
+
     }
 }

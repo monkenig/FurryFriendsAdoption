@@ -2,7 +2,7 @@
 {
     public class PetCategory : BaseDomainModel
     {
-        public string Name { get; set; }
-        public ICollection<Pet>? Pets { get; set; }
+        public string Name { get; set; } = "";
+        public ICollection<Pet> Pets { get; set; } = new List<Pet>();
     }
 }

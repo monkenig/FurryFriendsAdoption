@@ -4,6 +4,7 @@ using FurryFriendsAdoption.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FurryFriendsAdoption.Migrations
 {
     [DbContext(typeof(FurryFriendsAdoptionContext))]
-    partial class FurryFriendsAdoptionContextModelSnapshot : ModelSnapshot
+    [Migration("20260121141650_AddAdoptionApplicationRejectionReason")]
+    partial class AddAdoptionApplicationRejectionReason
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -97,7 +100,7 @@ namespace FurryFriendsAdoption.Migrations
                         {
                             Id = "3781efa7-66dc-47f0-860f-e506d04102e4",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "ef16e009-7539-4126-ab15-8e32110edef9",
+                            ConcurrencyStamp = "c772e3ad-d9d2-44b7-a7e8-ff952abc0ab2",
                             Email = "admin@localhost.com",
                             EmailConfirmed = true,
                             FirstName = "Admin",
@@ -105,9 +108,9 @@ namespace FurryFriendsAdoption.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCALHOST.COM",
                             NormalizedUserName = "ADMIN@LOCALHOST.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEAbyzkbaHBpoWKsQPkz+h+4DnvNOGlgDANOkJv8P66P4udFZotpPs9sCwKAV5OR1/g==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEDMiTr3W6b0BuOsZJUX6t6KXFergW3/W8cljNgaqUrAplDPtThk78RadOS9xuVivyA==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "6d7c5d9a-719a-4b23-b2fd-5bd1d6a1133c",
+                            SecurityStamp = "86d37201-b319-4fee-9b75-eeec9286477f",
                             TwoFactorEnabled = false,
                             UserName = "admin@localhost.com"
                         });

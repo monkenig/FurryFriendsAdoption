@@ -6,25 +6,27 @@
 @implements IAsyncDisposable
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Pet Categories</PageTitle>
 
-<h1>Index</h1>
+<h1>Pet Categories</h1>
 
 <p>
     <a href="petcategories/create">Create New</a>
 </p>
 
 <QuickGrid Class="table" Items="context.PetCategory">
-    <PropertyColumn Property="petcategory => petcategory.Name" />
-    <PropertyColumn Property="petcategory => petcategory.DateCreated" />
-    <PropertyColumn Property="petcategory => petcategory.DateUpdated" />
-    <PropertyColumn Property="petcategory => petcategory.CreatedBy" />
-    <PropertyColumn Property="petcategory => petcategory.UpdatedBy" />
+    <PropertyColumn Title="Category" Property="c => c.Name" />
+    <PropertyColumn Title="Created" Property="c => c.DateCreated" />
+    <PropertyColumn Title="Updated" Property="c => c.DateUpdated" />
 
-    <TemplateColumn Context="petcategory">
-        <a href="@($"petcategories/edit?id={petcategory.Id}")">Edit</a> |
-        <a href="@($"petcategories/details?id={petcategory.Id}")">Details</a> |
-        <a href="@($"petcategories/delete?id={petcategory.Id}")">Delete</a>
+    <TemplateColumn Title="Actions" Context="c">
+        <a href="@($"petcategories/details?id={c.Id}")">View Pets</a> 
+        <AuthorizeView Roles="Administrator">
+            | <a href="@($"petcategories/edit?id={c.Id}")">Edit</a> |
+        </AuthorizeView>
+        <AuthorizeView Roles="Administrator">
+        <a href="@($"petcategories/delete?id={c.Id}")">Delete</a>
+        </AuthorizeView>
     </TemplateColumn>
 </QuickGrid>
 

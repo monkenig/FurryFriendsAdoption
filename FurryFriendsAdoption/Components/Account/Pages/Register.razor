@@ -5,8 +5,11 @@
 @using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
+@using FurryFriendsAdoption.Domain
 @using FurryFriendsAdoption.Data
+@using Microsoft.EntityFrameworkCore
 
+@inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 @inject UserManager<FurryFriendsAdoptionUser> UserManager
 @inject IUserStore<FurryFriendsAdoptionUser> UserStore
 @inject SignInManager<FurryFriendsAdoptionUser> SignInManager
@@ -44,6 +47,18 @@
                            autocomplete="lastname" aria-required="true" placeholder="Gates" />
                 <label for="email">Last Name</label>
                 <ValidationMessage For="() => Input.LastName" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.PhoneNumber" class="form-control"
+                           autocomplete="PhoneNumber" aria-required="true" placeholder="Gates" />
+                <label for="Input_PhoneNumber">Phone Number</label>
+                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Address" class="form-control"
+                           autocomplete="Address" aria-required="true" placeholder="Gates" />
+                <label for="Input_Address">Address</label>
+                <ValidationMessage For="() => Input.Address" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
@@ -88,6 +103,7 @@
 
         user.FirstName = Input.FirstName;
         user.LastName = Input.LastName;
+        user.PhoneNumber = Input.PhoneNumber;
 
         var result = await UserManager.CreateAsync(user, Input.Password);
 
@@ -96,7 +112,21 @@
             identityErrors = result.Errors;
             return;
         }
+        using (var context = DbFactory.CreateDbContext())
+        {
+            var customer = new Customer
+            {
+                IdentityUserId = user.Id,
+                FirstName = Input.FirstName,
+                LastName = Input.LastName,
+                Email = Input.Email,
+                PhoneNumber = Input.PhoneNumber ?? "",  
+                Address = Input.Address ?? ""
+            };
 
+            context.Customer.Add(customer);
+            await context.SaveChangesAsync();
+        }
         //create the user role if it doesn't exist
         if (!await RoleManager.RoleExistsAsync("User"))
         {
@@ -167,6 +197,13 @@
         [Required]
         [Display(Name = "Last Name")]
         public string LastName { get; set; } = "";
+
+        [Phone]
+        [Display(Name = "Phone Number")]
+        public string? PhoneNumber { get; set; }
+
+        [Display(Name = "Address")]
+        public string? Address { get; set; }
 
         [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]

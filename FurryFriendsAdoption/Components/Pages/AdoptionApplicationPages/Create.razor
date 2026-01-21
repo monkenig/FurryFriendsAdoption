@@ -3,6 +3,9 @@
 @using FurryFriendsAdoption.Domain
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 @inject NavigationManager NavigationManager
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+
 
 <PageTitle>Create</PageTitle>
 
@@ -29,27 +32,12 @@
                 </InputSelect>
                 @* <InputNumber id="petid" @bind-Value="AdoptionApplication.PetId" class="form-control" /> 
                 <ValidationMessage For="() => AdoptionApplication.PetId" class="text-danger" />  *@
-            </div>        
-            <div class="mb-3">
-                <label for="customerid" class="form-label">Customer:</label> 
-                <InputSelect id="customerid" @bind-Value="AdoptionApplication.CustomerId" class="form-control">
-                    <option value="">-- Select Customer --</option>
-                    @if (Customers != null)
-                    {
-                        foreach (var customer in Customers)
-                        {
-                            <option value="@customer.Id">@customer.FirstName @customer.LastName</option>
-                        }
-                    }
-                </InputSelect>
-                @* <InputNumber id="customerid" @bind-Value="AdoptionApplication.CustomerId" class="form-control" /> 
-                <ValidationMessage For="() => AdoptionApplication.CustomerId" class="text-danger" />  *@
-            </div>        
-            <div class="mb-3">
+            </div>              
+            @*@<div class="mb-3">
                 <label for="status" class="form-label">Status:</label> 
                 <InputText id="status" @bind-Value="AdoptionApplication.Status" class="form-control" /> 
                 <ValidationMessage For="() => AdoptionApplication.Status" class="text-danger" /> 
-            </div>        
+            </div> *@      
             <div class="mb-3">
                 <label for="applicationdate" class="form-label">ApplicationDate:</label> 
                 <InputDate id="applicationdate" @bind-Value="AdoptionApplication.ApplicationDate" class="form-control" /> 
@@ -107,16 +95,35 @@
     private async Task AddAdoptionApplication()
     {
         using var context = DbFactory.CreateDbContext();
+
+        // Get logged-in user
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var identityUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(identityUserId))
+            return;
+
+        // Find the corresponding Customer record
+        var customerId = await context.Customer
+            .Where(c => c.IdentityUserId == identityUserId)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync();
+
+        if (customerId == 0)
+            return;
+
+        // Assign automatically
+        AdoptionApplication.CustomerId = customerId;
+
+        // Business defaults
+        AdoptionApplication.Status = AdoptionApplicationStatus.Pending;
+        AdoptionApplication.ApplicationDate = DateTime.Now;
+
         context.AdoptionApplication.Add(AdoptionApplication);
-
-        var pet = await context.Pet.FindAsync(AdoptionApplication.PetId);
-        if (pet != null)
-        {
-            pet.IsAdopted = true;
-            context.Pet.Update(pet);
-        }
-
         await context.SaveChangesAsync();
+
         NavigationManager.NavigateTo("/adoptionapplications");
     }
+
 }

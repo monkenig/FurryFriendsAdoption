@@ -3,7 +3,7 @@
 @using FurryFriendsAdoption.Domain
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 @inject NavigationManager NavigationManager
-
+@attribute [Authorize(Roles = "Administrator")]
 <PageTitle>Edit</PageTitle>
 
 <h1>Edit</h1>

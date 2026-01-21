@@ -4,6 +4,7 @@ using FurryFriendsAdoption.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FurryFriendsAdoption.Migrations
 {
     [DbContext(typeof(FurryFriendsAdoptionContext))]
-    partial class FurryFriendsAdoptionContextModelSnapshot : ModelSnapshot
+    [Migration("20260118100447_Appointment")]
+    partial class Appointment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -97,7 +100,7 @@ namespace FurryFriendsAdoption.Migrations
                         {
                             Id = "3781efa7-66dc-47f0-860f-e506d04102e4",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "ef16e009-7539-4126-ab15-8e32110edef9",
+                            ConcurrencyStamp = "ac719270-e4eb-4769-ae9a-fb3558d9bc8b",
                             Email = "admin@localhost.com",
                             EmailConfirmed = true,
                             FirstName = "Admin",
@@ -105,9 +108,9 @@ namespace FurryFriendsAdoption.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCALHOST.COM",
                             NormalizedUserName = "ADMIN@LOCALHOST.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEAbyzkbaHBpoWKsQPkz+h+4DnvNOGlgDANOkJv8P66P4udFZotpPs9sCwKAV5OR1/g==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEIAxtjagPA2TtWyEvHw8K8KW4i3BEJEYQ/QOkUg+bfvIxgHcPDC4JCIzqCm8HglUfQ==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "6d7c5d9a-719a-4b23-b2fd-5bd1d6a1133c",
+                            SecurityStamp = "b94ff202-cb02-4f16-bfb1-796ac0ba27fa",
                             TwoFactorEnabled = false,
                             UserName = "admin@localhost.com"
                         });
@@ -139,9 +142,6 @@ namespace FurryFriendsAdoption.Migrations
                     b.Property<int>("PetId")
                         .HasColumnType("int");
 
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -150,10 +150,6 @@ namespace FurryFriendsAdoption.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("PetId");
 
                     b.ToTable("AdoptionApplication");
                 });
@@ -184,9 +180,6 @@ namespace FurryFriendsAdoption.Migrations
                     b.Property<int>("PetId")
                         .HasColumnType("int");
 
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -195,10 +188,6 @@ namespace FurryFriendsAdoption.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("PetId");
 
                     b.ToTable("Appointment");
                 });
@@ -564,44 +553,6 @@ namespace FurryFriendsAdoption.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
-                });
-
-            modelBuilder.Entity("FurryFriendsAdoption.Domain.AdoptionApplication", b =>
-                {
-                    b.HasOne("FurryFriendsAdoption.Domain.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FurryFriendsAdoption.Domain.Pet", "Pet")
-                        .WithMany()
-                        .HasForeignKey("PetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Pet");
-                });
-
-            modelBuilder.Entity("FurryFriendsAdoption.Domain.Appointment", b =>
-                {
-                    b.HasOne("FurryFriendsAdoption.Domain.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FurryFriendsAdoption.Domain.Pet", "Pet")
-                        .WithMany()
-                        .HasForeignKey("PetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Pet");
                 });
 
             modelBuilder.Entity("FurryFriendsAdoption.Domain.Pet", b =>

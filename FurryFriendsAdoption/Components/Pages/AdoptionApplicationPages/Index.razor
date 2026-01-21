@@ -3,8 +3,10 @@
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using FurryFriendsAdoption.Domain
 @using FurryFriendsAdoption.Data
-@implements IAsyncDisposable
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
 
 @attribute [Authorize(Roles = "Administrator, User")]
 
@@ -12,19 +14,58 @@
 
 <h1>Index</h1>
 
-<p>
-    <a href="adoptionapplications/create">Create New</a>
-</p>
+@if (!IsAdmin)
+{
+    <p>
+        <a href="adoptionapplications/create">Create New</a>
+    </p>
+}
 
-<QuickGrid Class="table" Items="context.AdoptionApplication">
-    <PropertyColumn Property="adoptionapplication => adoptionapplication.PetId" />
-    <PropertyColumn Property="adoptionapplication => adoptionapplication.CustomerId" />
-    <PropertyColumn Property="adoptionapplication => adoptionapplication.Status" />
+@if (!string.IsNullOrEmpty(DebugMessage))
+{
+    <div class="alert alert-info">@DebugMessage</div>
+}
+
+@if (PendingActionApplicationId != null)
+{
+    <div class="alert alert-warning">
+        <strong>Confirm action</strong>
+        <p>
+            Are you sure you want to <strong>@PendingAction</strong> this adoption application?
+        </p>
+
+        @if (PendingAction == "reject")
+        {
+            <div class="mb-2">
+                <label class="form-label">Reason for rejection</label>
+                <InputTextArea class="form-control"
+                               @bind-Value="RejectionReasonInput"
+                               rows="3" />
+            </div>
+        }
+
+        <button class="btn btn-success me-2" @onclick="ConfirmAction">
+            Yes
+        </button>
+
+        <button class="btn btn-secondary" @onclick="CancelAction">
+            Cancel
+        </button>
+    </div>
+}
+
+<QuickGrid Class="table" Items="AdoptionApplications.AsQueryable()">
     <PropertyColumn Property="adoptionapplication => adoptionapplication.ApplicationDate" />
+    <TemplateColumn Title="Pet" Context="a">
+        @(a.Pet?.Name ?? "—")
+    </TemplateColumn>
+    <TemplateColumn Title="Customer" Context="a">
+        @($"{a.Customer?.FirstName} {a.Customer?.LastName}".Trim())
+    </TemplateColumn>
+    <PropertyColumn Property="adoptionapplication => adoptionapplication.Status" />
     <PropertyColumn Property="adoptionapplication => adoptionapplication.DateCreated" />
     <PropertyColumn Property="adoptionapplication => adoptionapplication.DateUpdated" />
-    <PropertyColumn Property="adoptionapplication => adoptionapplication.CreatedBy" />
-    <PropertyColumn Property="adoptionapplication => adoptionapplication.UpdatedBy" />
+    
 
     <TemplateColumn Context="adoptionapplication">
         <a href="@($"adoptionapplications/edit?id={adoptionapplication.Id}")">Edit</a> |
@@ -33,15 +74,177 @@
         | <a href="@($"adoptionapplications/delete?id={adoptionapplication.Id}")">Delete</a>
         </AuthorizeView>
     </TemplateColumn>
+
+    <TemplateColumn Title="Actions" Context="app">
+        @if (IsAdmin && app.Status == AdoptionApplicationStatus.Pending)
+        {
+            <button class="btn btn-sm btn-success me-2"
+                    type="button"
+                    @onclick="() => AskConfirmApprove(app.Id)">
+                Approve
+            </button>
+
+            <button class="btn btn-sm btn-danger"
+                    type="button"
+                    @onclick="() => AskConfirmReject(app.Id)">
+                Reject
+            </button>
+        }
+        else
+        {
+            <span>—</span>
+        }
+    </TemplateColumn>
+
+    <TemplateColumn Title="Rejection Reason" Context="a">
+        @(a.RejectionReason ?? "—")
+    </TemplateColumn>
+
+
+
 </QuickGrid>
 
 @code {
-    private FurryFriendsAdoptionContext context = default!;
+    private List<AdoptionApplication> AdoptionApplications = new();
 
-    protected override void OnInitialized()
+    private int? PendingActionApplicationId;
+    private string? PendingAction; 
+    private string RejectionReasonInput = "";
+    private bool IsAdmin;
+    private string? DebugMessage;
+
+    private void AskConfirmApprove(int id) => AskConfirm(id, "approve");
+    private void AskConfirmReject(int id) => AskConfirm(id, "reject");
+
+    private async Task LoadAdoptionApplicationsAsync()
     {
-        context = DbFactory.CreateDbContext();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        IsAdmin = user.IsInRole("Administrator");
+
+        using var db = DbFactory.CreateDbContext();
+
+        if (IsAdmin)
+        {
+            AdoptionApplications = await db.AdoptionApplication
+                .AsNoTracking()
+                .Include(a => a.Pet)
+                .Include(a => a.Customer)
+                .OrderByDescending(a => a.ApplicationDate)
+                .ToListAsync();
+
+            return;
+        }
+
+        var identityUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(identityUserId))
+        {
+            AdoptionApplications = new();
+            return;
+        }
+
+        var customerId = await db.Customer
+            .Where(c => c.IdentityUserId == identityUserId)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync();
+
+        AdoptionApplications = await db.AdoptionApplication
+            .AsNoTracking()
+            .Where(a => a.CustomerId == customerId)
+            .Include(a => a.Pet)
+            .Include(a => a.Customer)
+            .OrderByDescending(a => a.ApplicationDate)
+            .ToListAsync();
     }
 
-    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+        await LoadAdoptionApplicationsAsync();
+    }
+
+
+    private async Task ApproveAdoptionApplication(int applicationId)
+    {
+        DebugMessage = $"Approve clicked for ID = {applicationId} at {DateTime.Now:T}";
+        using var db = DbFactory.CreateDbContext();
+
+        var application = await db.AdoptionApplication
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
+
+        if (application is null) return;
+
+        if (application.Status != AdoptionApplicationStatus.Pending) return;
+
+        application.Status = AdoptionApplicationStatus.Approved;
+
+        var pet = await db.Pet.FindAsync(application.PetId);
+        if (pet != null)
+            pet.IsAdopted = true;
+
+        await db.SaveChangesAsync();
+
+        await LoadAdoptionApplicationsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RejectAdoptionApplication(int applicationId)
+    {
+        DebugMessage = $"Reject clicked for ID = {applicationId} at {DateTime.Now:T}";
+
+        using var db = DbFactory.CreateDbContext();
+
+        var application = await db.AdoptionApplication
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
+
+        if (application is null) return;
+
+        if (application.Status != AdoptionApplicationStatus.Pending) return;
+
+        application.Status = AdoptionApplicationStatus.Rejected;
+        application.RejectionReason = string.IsNullOrWhiteSpace(RejectionReasonInput)
+            ? null
+            : RejectionReasonInput.Trim();
+
+        await db.SaveChangesAsync();
+
+        await LoadAdoptionApplicationsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    private void AskConfirm(int applicationId, string action)
+    {
+        PendingActionApplicationId = applicationId;
+        PendingAction = action;
+    }
+
+    private void CancelAction()
+    {
+        PendingActionApplicationId = null;
+        PendingAction = null;
+        RejectionReasonInput = "";
+    }
+
+    private async Task ConfirmAction()
+    {
+        if (PendingActionApplicationId == null || PendingAction == null)
+            return;
+
+        if (PendingAction == "approve")
+            await ApproveAdoptionApplication(PendingActionApplicationId.Value);
+        else if (PendingAction == "reject")
+            await RejectAdoptionApplication(PendingActionApplicationId.Value);
+
+        PendingActionApplicationId = null;
+        PendingAction = null;
+        RejectionReasonInput = "";
+    }
+
+
 }
+
+

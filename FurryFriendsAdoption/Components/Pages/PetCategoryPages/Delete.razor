@@ -3,7 +3,7 @@
 @using FurryFriendsAdoption.Domain
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 @inject NavigationManager NavigationManager
-
+@attribute [Authorize(Roles = "Administrator")]
 <PageTitle>Delete</PageTitle>
 
 <h1>Delete</h1>

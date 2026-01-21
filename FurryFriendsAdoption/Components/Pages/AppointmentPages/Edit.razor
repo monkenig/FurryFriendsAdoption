@@ -3,7 +3,7 @@
 @using FurryFriendsAdoption.Domain
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 @inject NavigationManager NavigationManager
-
+@attribute [Authorize(Roles = "Administrator")]
 <PageTitle>Edit</PageTitle>
 
 <h1>Edit</h1>
@@ -29,19 +29,38 @@ else
                 </div>
                 <div class="mb-3">
                     <label for="status" class="form-label">Status:</label>
-                    <InputText id="status" @bind-Value="Appointment.Status" class="form-control" />
+                    <InputSelect id="status" @bind-Value="Appointment.Status" class="form-control">
+                        @foreach (var s in Enum.GetValues<AppointmentStatus>())
+                        {
+                            <option value="@s">@s</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Appointment.Status" class="text-danger" />
                 </div>
                 <div class="mb-3">
-                    <label for="petid" class="form-label">PetId:</label>
-                    <InputNumber id="petid" @bind-Value="Appointment.PetId" class="form-control" />
+                    <label for="petid" class="form-label">Pet:</label>
+                    <InputSelect id="petid" @bind-Value="Appointment.PetId" class="form-control">
+                        <option value="0">-- Select Pet --</option>
+                        @foreach (var pet in Pets)
+                        {
+                            <option value="@pet.Id">@pet.Name (@pet.Species)</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Appointment.PetId" class="text-danger" />
                 </div>
+
                 <div class="mb-3">
-                    <label for="customerid" class="form-label">CustomerId:</label>
-                    <InputNumber id="customerid" @bind-Value="Appointment.CustomerId" class="form-control" />
+                    <label for="customerid" class="form-label">Customer:</label>
+                    <InputSelect id="customerid" @bind-Value="Appointment.CustomerId" class="form-control">
+                        <option value="0">-- Select Customer --</option>
+                        @foreach (var customer in Customers)
+                        {
+                            <option value="@customer.Id">@customer.FirstName @customer.LastName</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Appointment.CustomerId" class="text-danger" />
                 </div>
+
                 <div class="mb-3">
                     <label for="datecreated" class="form-label">DateCreated:</label>
                     <InputDate id="datecreated" @bind-Value="Appointment.DateCreated" class="form-control" />
@@ -78,17 +97,29 @@ else
 
     [SupplyParameterFromForm]
     private Appointment? Appointment { get; set; }
+    private List<Pet> Pets { get; set; } = new();
+    private List<Customer> Customers { get; set; } = new();
+
 
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        Appointment ??= await context.Appointment.FirstOrDefaultAsync(m => m.Id == Id);
+
+        Appointment ??= await context.Appointment
+            .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (Appointment is null)
         {
             NavigationManager.NavigateTo("notfound");
+            return;
         }
+
+        Pets = await context.Pet
+            .Where(p => !p.IsAdopted)
+            .ToListAsync();
+        Customers = await context.Customer.ToListAsync();
     }
+
 
     // To protect from overposting attacks, enable the specific properties you want to bind to.
     // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.

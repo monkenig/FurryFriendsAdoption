@@ -4,6 +4,7 @@ using FurryFriendsAdoption.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FurryFriendsAdoption.Migrations
 {
     [DbContext(typeof(FurryFriendsAdoptionContext))]
-    partial class FurryFriendsAdoptionContextModelSnapshot : ModelSnapshot
+    [Migration("20260121114435_FixEnumStatusMapping")]
+    partial class FixEnumStatusMapping
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -97,7 +100,7 @@ namespace FurryFriendsAdoption.Migrations
                         {
                             Id = "3781efa7-66dc-47f0-860f-e506d04102e4",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "ef16e009-7539-4126-ab15-8e32110edef9",
+                            ConcurrencyStamp = "d796a4f4-0689-4b28-8a4a-1eaeb95c12c4",
                             Email = "admin@localhost.com",
                             EmailConfirmed = true,
                             FirstName = "Admin",
@@ -105,9 +108,9 @@ namespace FurryFriendsAdoption.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCALHOST.COM",
                             NormalizedUserName = "ADMIN@LOCALHOST.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEAbyzkbaHBpoWKsQPkz+h+4DnvNOGlgDANOkJv8P66P4udFZotpPs9sCwKAV5OR1/g==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEIXkM3uNsqoLBK3cgmDYD5LI9wnGFoPrSTxd8uV8ElC/hkBOxCsiamy4QcL0VE0+Nw==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "6d7c5d9a-719a-4b23-b2fd-5bd1d6a1133c",
+                            SecurityStamp = "2377e4ff-2cd6-430c-a1dd-3f43a0627a7a",
                             TwoFactorEnabled = false,
                             UserName = "admin@localhost.com"
                         });
@@ -138,9 +141,6 @@ namespace FurryFriendsAdoption.Migrations
 
                     b.Property<int>("PetId")
                         .HasColumnType("int");
-
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -183,9 +183,6 @@ namespace FurryFriendsAdoption.Migrations
 
                     b.Property<int>("PetId")
                         .HasColumnType("int");
-
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()

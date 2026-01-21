@@ -3,6 +3,9 @@
 @using FurryFriendsAdoption.Domain
 @inject IDbContextFactory<FurryFriendsAdoption.Data.FurryFriendsAdoptionContext> DbFactory
 @inject NavigationManager NavigationManager
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+
 
 <PageTitle>Create</PageTitle>
 
@@ -19,22 +22,21 @@
                 <label for="appointmentdate" class="form-label">AppointmentDate:</label> 
                 <InputDate id="appointmentdate" @bind-Value="Appointment.AppointmentDate" class="form-control" /> 
                 <ValidationMessage For="() => Appointment.AppointmentDate" class="text-danger" /> 
-            </div>        
+            </div>              
             <div class="mb-3">
-                <label for="status" class="form-label">Status:</label> 
-                <InputText id="status" @bind-Value="Appointment.Status" class="form-control" /> 
-                <ValidationMessage For="() => Appointment.Status" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="petid" class="form-label">PetId:</label> 
-                <InputNumber id="petid" @bind-Value="Appointment.PetId" class="form-control" /> 
-                <ValidationMessage For="() => Appointment.PetId" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="customerid" class="form-label">CustomerId:</label> 
-                <InputNumber id="customerid" @bind-Value="Appointment.CustomerId" class="form-control" /> 
-                <ValidationMessage For="() => Appointment.CustomerId" class="text-danger" /> 
-            </div>        
+                <label for="petid" class="form-label">Pet:</label>
+                <InputSelect id="petid" @bind-Value="Appointment.PetId" class="form-control">
+                    <option value="0">-- Select Pet --</option>
+                    @if (Pets != null)
+                    {
+                        foreach (var pet in Pets)
+                        {
+                            <option value="@pet.Id">@pet.Name (@pet.Species)</option>
+                        }
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => Appointment.PetId" class="text-danger" />
+            </div>
             <div class="mb-3">
                 <label for="datecreated" class="form-label">DateCreated:</label> 
                 <InputDate id="datecreated" @bind-Value="Appointment.DateCreated" class="form-control" /> 
@@ -64,7 +66,7 @@
     <a href="/appointments">Back to List</a>
 </div>
 
-@code {
+@*@code {
     [SupplyParameterFromForm]
     private Appointment Appointment { get; set; } = new();
 
@@ -76,4 +78,58 @@
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo("/appointments");
     }
+}*@
+@code {
+    [SupplyParameterFromForm]
+    private Appointment Appointment { get; set; } = new();
+
+    
+    private List<Pet> Pets { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        Pets = await context.Pet
+            .Where(p => !p.IsAdopted)
+            .ToListAsync();
+    }
+
+    // To protect from overposting attacks, see
+    // https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddAppointment()
+    {
+        if (Appointment.PetId == 0)
+            return;
+
+        using var context = DbFactory.CreateDbContext();
+
+        // Get logged-in user
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var identityUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(identityUserId))
+            return;
+
+        // Find the Customer linked to this Identity user
+        var customerId = await context.Customer
+            .Where(c => c.IdentityUserId == identityUserId)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync();
+
+        if (customerId == 0)
+            return;
+
+        // Set the appointment ownership + defaults
+        Appointment.CustomerId = customerId;
+        Appointment.Status = AppointmentStatus.Pending;
+
+        context.Appointment.Add(Appointment);
+        await context.SaveChangesAsync();
+
+        NavigationManager.NavigateTo("/appointments");
+    }
+
 }
+
